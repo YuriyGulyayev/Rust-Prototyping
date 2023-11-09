@@ -1,0 +1,42 @@
+[workspace]
+
+# # Issue. This would be ignored.
+# edition = "2021"
+
+# Issue. Without this, cargo would show a warning
+# because the default for a workspace is "1", while for a package it's "2".
+# Specifying an "edition" won't help.
+# todo.3 Are they going to fix this?
+resolver = "2"
+
+# cargo new exe_13 --vcs none
+# cargo new lib_14 --lib --vcs none
+members = [
+   # "packages/executables/*",
+   # "packages/libraries/*"
+   # "packages/executables/exe_13",
+   "packages/executables/exe_16",
+]
+
+# default-members = [
+#    # "packages/executables/exe_13",
+#    "packages/executables/exe_16",
+# ]
+
+[profile.dev]
+
+# # This works.
+# split-debuginfo = 'packed'
+
+# [Comment-202310291]
+# It appears that this would kill the process even if a non-main thread panics.
+# [/Comment-202310291]
+panic = 'abort'
+
+[profile.release]
+
+# Comment-202310291 applies.
+panic = 'abort'
+
+codegen-units = 1
+lto = true

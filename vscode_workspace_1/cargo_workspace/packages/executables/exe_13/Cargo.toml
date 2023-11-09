@@ -1,0 +1,11 @@
+[package]
+name = "exe_13"
+version = "0.1.0"
+edition = "2021"
+# rust-version = "1.72"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lib_14 = { path = "../../libraries/lib_14" }
+# lib_14 = { name = "lib_14" }
