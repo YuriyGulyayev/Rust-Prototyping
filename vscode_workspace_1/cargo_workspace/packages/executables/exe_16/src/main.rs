@@ -319,7 +319,7 @@ mod mod_2;
 
 fn main()
 {
-   mod_202309288::fn_1();
+   mod_202311267::fn_1();
 
    crate::mod_1::fn_202309155();
    self::mod_1::fn_202309155();
@@ -380,10 +380,22 @@ mod mod_202309151
       }
 
       {
+         // Don't forget that `String::from_str` returns a `Result`.
          let box_1 = Box::new(String::from_str("a"));
 
+         // [Comment-202311272]
          // This moves the boxed content.
          // After this, 'box_1' is inaccessible.
+         // [/Comment-202311272]
+         let srting_1 = * box_1;
+
+         // println!("{}", * box_1)
+      }
+
+      {
+         let box_1 = Box::new("a".to_owned());
+
+         // Comment-202311272 applies.
          let srting_1 = * box_1;
 
          // println!("{}", * box_1)
@@ -461,7 +473,7 @@ mod mod_202309162
 
    fn use_array(array: & [i32; 5])
    { 
-      println!("length of slice is {:?}", array.len());
+      println!("length of array is {:?}", array.len());
       println!("{:?}", array);
    }
 
@@ -1045,6 +1057,7 @@ mod mod_202309285
          Message::Hello {
             id: id_variable @ 3..=7,
          } => println!("Found an id in range: {}", id_variable),
+
          Message::Hello { id: id @ 10..=12 } => {
             // println!("Found an id in another range.")
             println!("Found an id in another range. {}", id);
@@ -1063,6 +1076,12 @@ mod mod_202309285
       {
          // If the pattern does not match, print a default message
          println!("Not a Hello message");
+      }
+
+      // Sam as the above, but here using only references to variables.
+      #[allow(clippy::ref_patterns)]
+      if let &Message::Hello { id: ref x @ 13..=17 } = &msg
+      {
       }
    }
 }
@@ -1216,9 +1235,9 @@ mod mod_202310072
    }
 }
 
+// https://doc.rust-lang.org/rust-by-example/primitives/tuples.html
 mod mod_202310073
 {
-   // https://doc.rust-lang.org/rust-by-example/primitives/tuples.html
    pub fn fn_1()
    {
       // Tuples can be tuple members.
@@ -1237,10 +1256,23 @@ mod mod_202310073
       println!("Just an integer: {:?}", (5u32));
 
       // Tuples can be destructured to create bindings.
-      let tuple = (1, "hello", 4.5, true);
+      {
+         let tuple = (1, "hello", String::from("hi"), 4.5, true);
 
-      let (a, b, c, d) = tuple;
-      println!("{:?}, {:?}, {:?}, {:?}", a, b, c, d);
+         {
+            // #[allow(clippy::toplevel_ref_arg)]
+            #[allow(clippy::needless_borrowed_reference)]
+            #[allow(clippy::ref_patterns)]
+            let & (ref a, /*ref*/ b, ref c, ref d, ref e1,) = &tuple;
+
+            println!("{:?}, {:?}, {:?}, {:?}, {:?}", a, b, c, d, e1);
+         }
+
+         {
+            let (a, b, c, d, e1,) = tuple;
+            println!("{:?}, {:?}, {:?}, {:?}, {:?}", a, b, c, d, e1);
+         }
+      }
    }
 }
 
@@ -1254,6 +1286,9 @@ mod mod_202310074
    // On that page, find:
    // https://doc.rust-lang.org/edition-guide/rust-2018/ownership-and-lifetimes/default-match-bindings.html
    fn hello(arg: &Option<String>) {
+      #[allow(clippy::match_ref_pats)]
+      #[allow(clippy::needless_borrowed_reference)]
+      #[allow(clippy::ref_patterns)]
       match arg {
           &Some(ref name) => println!("Hello {}!", name),
           &None => println!("I don't know who you are."),
@@ -1292,8 +1327,8 @@ mod mod_202310075
 
       for name in names.into_iter()
       {
-         // // This makes no sense
-         // // becase {name} is already a {String} that has already been moved out of {names}.
+         // // This would make no sense
+         // // becase `name` is already a `String` that has already been moved out of `names`.
          // // It's anyway about to be dropped.
          // drop(*name) ;
       }
@@ -1334,6 +1369,9 @@ mod mod_202310082
       fn_plain();
       fn_mut();
       // fn_once();
+
+      (&fn_plain)();
+      (&mut fn_mut)();
    }
 
    fn create_fn() -> impl Fn()
@@ -1369,7 +1407,7 @@ mod mod_202310091
 
    pub fn fn_1()
    {
-      let mut y = GenVal { gen_val: 3i32 };
+      let mut y = GenVal { gen_val: 3_i32 };
       ( * ( & mut y ).value() ) = 123_i32;
       println!("{}", y.value());
    }
@@ -1388,8 +1426,8 @@ mod mod_202310092
   
   // Because we would otherwise have to express this as `T: Debug` or 
   // use another method of indirect approach, this requires a `where` clause:
-  impl<T> PrintInOption for T where
-      Option<T>: ::core::fmt::Debug {
+  impl<T> PrintInOption for T
+      where Option<T>: ::core::fmt::Debug {
       // We want `Option<T>: Debug` as our bound because that is what's
       // being printed. Doing otherwise would be using the wrong bound.
       fn print_in_option(self) {
@@ -1493,6 +1531,7 @@ mod mod_202310102
             println!("{foo1}");
          }
 
+         // Bug. This actually destructures by value. `foo2` is not a reference.
          if let & Some(foo2) = & opt
          {
             println!("{foo2}");
@@ -1510,9 +1549,10 @@ mod mod_202310103
 
    impl MyStruct
    {
+      /// Method name can be the same as field name.
       pub fn flag_1(&self) -> bool
       {
-         return self.flag_1;
+         return (*self).flag_1;
       }
    }
 
@@ -1547,21 +1587,98 @@ mod mod_202310111
    }
 }
 
-mod mod_202310151
+// I asked Bing Chat:
+// Give me an example of Rust code that destructures by reference.
+// See also: https://doc.rust-lang.org/rust-by-example/scope/borrow/ref.html
+mod mod_202311261
 {
-   use ::futures::executor::block_on;
+   // Define a struct with two fields
+   struct Point {
+      x: i32,
+      y: i32,
+   }
 
    pub fn fn_1()
    {
-      let future = hello_world(); // Nothing is printed
-      block_on(future); // `future` is run and "hello, world!" is printed
-      // future.await;
+      // Create an instance of the struct
+      let p = Point { x: 10, y: 20 };
+      
+      // Destructure the struct by reference, using the & operator
+      let Point { x: ref a, y: ref b } = &p;
+      
+      // Print the values of the references
+      println!("a = {}, b = {}", a, b);      
+   }
+}
+
+mod mod_202311267
+{
+   // Import serde and its derive macros
+   use ::serde::Serialize;
+   use ::serde::Deserialize;
+   
+   // Define a struct with some fields
+   #[derive(Serialize, Deserialize, Debug)]
+   struct Person
+   {
+      name: String,
+      age: u32,
+      hobbies: Vec<String>,
    }
 
-   async fn hello_world() {
-      println!("hello, world!");
-  }
+   pub fn fn_1()
+   {
+      // Create an instance of the struct
+      let alice = Person {
+         name: "Alice".to_string(),
+         age: 25,
+         hobbies: vec!["reading".to_string(), "baking".to_string(), "gardening".to_string()],
+      };
+      
+      // Serialize the struct to a JSON string
+      let json = serde_json::to_string(&alice).unwrap();
+      println!("JSON: {}", json);
+      
+      // Deserialize the JSON string back to a struct
+      let bob: Person = serde_json::from_str(&json).unwrap();
+      println!("Struct: {:?}", bob);
+   }
 }
+
+// mod mod_
+// {
+//    pub fn fn_1()
+//    {
+//    }
+// }
+
+// mod mod_
+// {
+//    pub fn fn_1()
+//    {
+//    }
+// }
+
+// mod mod_
+// {
+//    pub fn fn_1()
+//    {
+//    }
+// }
+
+// mod mod_
+// {
+//    pub fn fn_1()
+//    {
+//    }
+// }
+
+// mod mod_
+// {
+//    pub fn fn_1()
+//    {
+//    }
+// }
 
 // mod mod_
 // {

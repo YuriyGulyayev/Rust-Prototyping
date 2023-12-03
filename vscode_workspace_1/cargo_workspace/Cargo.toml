@@ -5,22 +5,24 @@
 
 # Issue. Without this, cargo would show a warning
 # because the default for a workspace is "1", while for a package it's "2".
-# Specifying an "edition" won't help.
+# Specifying an `edition` won't help.
 # todo.3 Are they going to fix this?
 resolver = "2"
 
-# cargo new exe_13 --vcs none
+# cargo new exe_16 --vcs none
 # cargo new lib_14 --lib --vcs none
 members = [
    # "packages/executables/*",
    # "packages/libraries/*"
    # "packages/executables/exe_13",
    "packages/executables/exe_16",
+   # "packages/executables/my-redis",
 ]
 
 # default-members = [
 #    # "packages/executables/exe_13",
-#    "packages/executables/exe_16",
+#    # "packages/executables/exe_16",
+#    # "packages/executables/my-redis",
 # ]
 
 [profile.dev]
